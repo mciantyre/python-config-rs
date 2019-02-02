@@ -1,12 +1,13 @@
 # `python-config-rs` in Rust
 
-`python-config-rs` crate gives you the same insight as
-the `python-config` script bundled in your Python distribution.
+The `python-config-rs` crate gives you the same insight as
+the `python-config` script bundled with your Python distribution.
 The crate is intended for build scripts that need
 
 - the Python include directories
 - flags for building / linking Python
 - ABI flags used when building your Python installation
+- any Python information already provided by `python-config`
 
 ```rust
 use python_config::PythonConfig;
@@ -24,8 +25,8 @@ interface. Note that the Python 2 interface has gone through
 significantly less testing.
 
 Based on this library, we also provide a reimplementation
-of `python-config`. Our automated tests show equivalence
-between our implementation and the normal `python-config`
+of `python3-config`. Our automated tests show equivalence
+between our implementation and the normal `python3-config`
 script. The binary is Python 3 only.
 
 ## License

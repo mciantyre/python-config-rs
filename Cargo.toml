@@ -22,5 +22,5 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "python3-config"
-path = "src/bin/python-config.rs"
+path = "src/bin/python3-config.rs"
 doc = false
