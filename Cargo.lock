@@ -80,7 +80,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "python-config"
+name = "python-config-rs"
 version = "0.1.0"
 dependencies = [
  "assert_cmd 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
