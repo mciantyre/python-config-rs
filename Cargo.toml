@@ -2,6 +2,7 @@
 name = "python-config-rs"
 version = "0.1.0"
 authors = ["Ian McIntyre <ianpmcintyre@gmail.com>"]
+repository = "https://github.com/mciantyre/python-config-rs"
 edition = "2018"
 description = """
 Python distribution information, similar to python-config
