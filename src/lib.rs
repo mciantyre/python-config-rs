@@ -199,7 +199,7 @@ impl PythonConfig {
         self.version_raw()
             .and_then(|resp| {
                 let mut witer = resp.split_whitespace();
-                witer.next();
+                witer.next(); // 'Python'
                 let ver = witer.next().ok_or(other_err(
                     "expected --version to return a string resembling 'Python X.Y.Z'",
                 ))?;

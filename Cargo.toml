@@ -10,6 +10,9 @@ Python distribution information
 [dependencies]
 semver = "0.9"
 
+[dev-dependencies]
+assert_cmd = "0.11"
+
 [lib]
 name = "python_config"
 path = "src/lib.rs"

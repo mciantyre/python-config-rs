@@ -20,19 +20,19 @@ static VALID_OPTS_TO_HANDLER: &[(&'static str, Handler)] = &[
     ("--cflags", PythonConfig::cflags),
     ("--ldflags", PythonConfig::ldflags),
     ("--extension-suffix", PythonConfig::extension_suffix),
-    ("--help", not_implemented),
+    ("--help", not_implemented), // unreachable; we check for help and handle it manually
     ("--abiflags", PythonConfig::abi_flags),
     ("--configdir", PythonConfig::config_dir),
 ];
 
-fn exit_with_usage(program: &str) {
+fn exit_with_usage(program: &str, code: i32) {
     let flags: Vec<&'static str> = VALID_OPTS_TO_HANDLER
         .iter()
         .map(|(flag, _)| *flag)
         .collect();
     let flags = flags.join("|");
     eprintln!("Usage: {} [{}]", program, flags);
-    process::exit(1);
+    process::exit(code);
 }
 
 fn not_implemented(_: &PythonConfig) -> PyResult<String> {
@@ -46,13 +46,24 @@ fn main() -> io::Result<()> {
         .collect();
 
     let all_valid = env::args().skip(1).all(|arg| flags.contains(&arg));
-    let args: Vec<String> = env::args().filter(|arg| flags.contains(arg)).collect();
+    let args: Vec<String> = env::args()
+        .skip(1)
+        .filter(|arg| flags.contains(arg))
+        .collect();
 
-    if !all_valid || args.len() == 0 || args.contains(&String::from("--help")) {
+    if !all_valid || args.len() == 0 {
         exit_with_usage(
             &env::args()
                 .nth(0)
                 .expect("no first argument representing the program path"),
+            1,
+        );
+    } else if args.contains(&String::from("--help")) {
+        exit_with_usage(
+            &env::args()
+                .nth(0)
+                .expect("no first argument representing the program path"),
+            0,
         );
     }
 
