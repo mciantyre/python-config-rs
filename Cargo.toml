@@ -10,5 +10,6 @@ Python distribution information
 [dependencies]
 semver = "0.9"
 
-[workspace]
-members = ["cli"]
+[[bin]]
+name = "python-config"
+path = "src/main.rs"

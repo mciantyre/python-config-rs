@@ -30,6 +30,7 @@ use cmdr::SysCommand;
 use semver;
 
 use std::io;
+use std::path::PathBuf;
 
 /// Selectable Python version
 pub enum Version {
@@ -47,10 +48,10 @@ fn other_err(what: &str) -> io::Error {
 fn build_script(lines: &[&str]) -> String {
     let mut script = String::new();
     script.push_str("from __future__ import print_function; ");
-    for line in lines {
-        script.push_str(line);
-        script.push_str("; ");
-    }
+    script.push_str("import sysconfig; ");
+    script.push_str("pyver = sysconfig.get_config_var('VERSION'); ");
+    script.push_str("getvar = sysconfig.get_config_var; ");
+    script.extend(lines.join("; ").chars());
     script
 }
 
@@ -82,9 +83,14 @@ impl PythonConfig {
         }
     }
 
+    /// Returns the Python version string
+    pub fn version_raw(&self) -> io::Result<String> {
+        self.cmdr.command("--version")
+    }
+
     /// Returns the Python version as a semver
     pub fn semantic_version(&self) -> io::Result<semver::Version> {
-        self.cmdr.command("--version").and_then(|resp| {
+        self.version_raw().and_then(|resp| {
             let mut witer = resp.split_whitespace();
             witer.next();
             let ver = witer.next().ok_or(other_err(
@@ -97,34 +103,77 @@ impl PythonConfig {
     fn script(&self, lines: &[&str]) -> io::Result<String> {
         self.cmdr.commands(&["-c", &build_script(lines)])
     }
+
     /// Returns the path prefix of the Python interpreter
     pub fn prefix(&self) -> io::Result<String> {
-        self.script(&[
-            "import sysconfig",
-            "print(sysconfig.get_config_var('prefix'))",
-        ])
+        self.script(&["print(sysconfig.get_config_var('prefix'))"])
+    }
+
+    pub fn prefix_path(&self) -> io::Result<PathBuf> {
+        self.prefix().map(PathBuf::from)
     }
 
     /// Returns the executable path prefix for the Python interpreter
     pub fn exec_prefix(&self) -> io::Result<String> {
-        self.script(&[
-            "import sysconfig",
-            "print(sysconfig.get_config_var('exec_prefix'))",
-        ])
+        self.script(&["print(sysconfig.get_config_var('exec_prefix'))"])
+    }
+
+    pub fn exec_prefix_path(&self) -> io::Result<PathBuf> {
+        self.exec_prefix().map(PathBuf::from)
     }
 
     pub fn abi_flags(&self) -> io::Result<String> {
+        self.script(&["import sys", "print(sys.abiflags)"])
+    }
+
+    /// Returns a list of paths that represent the include paths
+    /// for the distribution's headers. This is a space-delimited
+    /// string of paths prefixed with `-I`.
+    pub fn includes(&self) -> io::Result<String> {
         self.script(&[
-            "import sys",
-            "print(sys.abiflags)"
+            "flags = ['-I' + sysconfig.get_path('include'), '-I' + sysconfig.get_path('platinclude')]",
+            "print(' '.join(flags))",
         ])
     }
 
-    pub fn includes(&self) -> io::Result<String> {
+    /// Returns a list of paths that represent the include paths
+    /// for the distribution's headers. You may consider prefixing
+    /// these with `-I` in a build script.
+    pub fn include_paths(&self) -> io::Result<Vec<PathBuf>> {
         self.script(&[
-            "import sysconfig",
+            "print(sysconfig.get_path('include'))",
+            "print(sysconfig.get_path('platinclude'))",
+        ])
+        .map(|resp| resp.lines().map(PathBuf::from).collect())
+    }
+
+    pub fn cflags(&self) -> io::Result<String> {
+        self.script(&[
             "flags = ['-I' + sysconfig.get_path('include'), '-I' + sysconfig.get_path('platinclude')]",
+            "flags.extend(sysconfig.get_config_var('CFLAGS').split())",
             "print(' '.join(flags))",
+        ])
+    }
+
+    pub fn libs(&self) -> io::Result<String> {
+        self.script(&[
+            "import sys",
+            "libs = ['-lpython' + pyver + sys.abiflags]",
+            "libs += getvar('LIBS').split()",
+            "libs += getvar('SYSLIBS').split()",
+            "print(' '.join(libs))",
+        ])
+    }
+
+    pub fn ldflags(&self) -> io::Result<String> {
+        self.script(&[
+            "import sys",
+            "libs = ['-lpython' + pyver + sys.abiflags]",
+            "libs += getvar('LIBS').split()",
+            "libs += getvar('SYSLIBS').split()",
+            "if not getvar('Py_ENABLE_SHARED'): libs.insert(0, '-L' + getvar('LIBPL'))",
+            "if not getvar('PYTHONFRAMEWORK'): libs.extend(getvar('LINKFORSHARED').split())",
+            "print(' '.join(libs))",
         ])
     }
 }
@@ -151,9 +200,9 @@ mod tests {
 
     #[test]
     fn version() {
-        let py = PythonConfig::with_commander(
-            StaticCommand::new(hashmap!["--version" => "Python 3.7.2"]),
-        );
+        let py = PythonConfig::with_commander(StaticCommand::new(
+            hashmap!["--version" => "Python 3.7.2"],
+        ));
         assert!(py.semantic_version().is_ok());
     }
 }
