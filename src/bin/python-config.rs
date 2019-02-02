@@ -1,11 +1,16 @@
-use python_config::PythonConfig;
+//! Reimplementation of `python3-config` using
+//! the python-config crate.
+//!
+//! This is Python 3 only.
+
+use python_config::{PyResult, PythonConfig};
 
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::io;
 use std::process;
 
-type Handler = fn(&PythonConfig) -> io::Result<String>;
+type Handler = fn(&PythonConfig) -> PyResult<String>;
 
 static VALID_OPTS_TO_HANDLER: &[(&'static str, Handler)] = &[
     ("--prefix", PythonConfig::prefix),
@@ -14,10 +19,10 @@ static VALID_OPTS_TO_HANDLER: &[(&'static str, Handler)] = &[
     ("--libs", PythonConfig::libs),
     ("--cflags", PythonConfig::cflags),
     ("--ldflags", PythonConfig::ldflags),
-    ("--extension-suffix", not_implemented),
+    ("--extension-suffix", PythonConfig::extension_suffix),
     ("--help", not_implemented),
     ("--abiflags", PythonConfig::abi_flags),
-    ("--configdir", not_implemented),
+    ("--configdir", PythonConfig::config_dir),
 ];
 
 fn exit_with_usage(program: &str) {
@@ -30,7 +35,7 @@ fn exit_with_usage(program: &str) {
     process::exit(1);
 }
 
-fn not_implemented(_: &PythonConfig) -> io::Result<String> {
+fn not_implemented(_: &PythonConfig) -> PyResult<String> {
     panic!("handler not implemented");
 }
 
