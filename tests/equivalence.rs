@@ -47,7 +47,7 @@ fn usage_flags(stderr: &[u8]) -> String {
 #[test]
 fn prints_same_help_no_input() {
     check_python3_config!();
-    let rust = Command::cargo_bin(env!("CARGO_PKG_NAME"))
+    let rust = Command::cargo_bin("python3-config")
         .expect("cannot find our Rust binary")
         .output()
         .unwrap();
@@ -60,7 +60,7 @@ fn prints_same_help_no_input() {
 #[test]
 fn prints_same_help_flag() {
     check_python3_config!();
-    let rust = Command::cargo_bin(env!("CARGO_PKG_NAME"))
+    let rust = Command::cargo_bin("python3-config")
         .expect("cannot find our Rust binary")
         .arg("--help")
         .output()
@@ -77,7 +77,7 @@ fn prints_same_help_flag() {
 #[test]
 fn unknown_flag() {
     check_python3_config!();
-    let rust = Command::cargo_bin(env!("CARGO_PKG_NAME"))
+    let rust = Command::cargo_bin("python3-config")
         .expect("cannot find our Rust binary")
         .arg("--what")
         .output()
@@ -93,7 +93,7 @@ fn unknown_flag() {
 
 fn test_outputs_given(flags: &[&str]) {
     check_python3_config!();
-    let rust = Command::cargo_bin(env!("CARGO_PKG_NAME"))
+    let rust = Command::cargo_bin("python3-config")
         .expect("cannot find our Rust binary")
         .args(flags)
         .output()

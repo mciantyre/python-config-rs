@@ -4,6 +4,17 @@
 //! with your Python distribution, `python-config` helps you
 //! find information about your Python distribution.
 //!
+//! ```no_run
+//! use python_config::PythonConfig;
+//!
+//! let cfg = PythonConfig::new(); // Python 3
+//!
+//! // Print include directories
+//! println!("Includes: {}", cfg.includes().unwrap());
+//! // Print installation prefix
+//! println!("Installation prefix: {}", cfg.prefix().unwrap());
+//! ```
+//!
 //! `python-config` may be most useful in your `build.rs`
 //! script, or in any application where you need to find
 //!

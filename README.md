@@ -8,6 +8,17 @@ The crate is intended for build scripts that need
 - flags for building / linking Python
 - ABI flags used when building your Python installation
 
+```rust
+use python_config::PythonConfig;
+
+let cfg = PythonConfig::new(); // Python 3
+
+// Print include directories
+println!("Includes: {}", cfg.includes().unwrap());
+// Print installation prefix
+println!("Installation prefix: {}", cfg.prefix().unwrap());
+```
+
 This is Python 3 by default, but we provide a Python 2
 interface. Note that the Python 2 interface has gone through
 significantly less testing.
