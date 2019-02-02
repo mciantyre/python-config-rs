@@ -58,7 +58,7 @@ impl Commander for SysCommand {
             .and_then(|out| {
                 str::from_utf8(&out.stdout)
                     .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-                    .map(|s| s.to_owned())
+                    .map(|s| s.trim().to_owned())
             })
     }
 
@@ -69,7 +69,7 @@ impl Commander for SysCommand {
             .and_then(|out| {
                 str::from_utf8(&out.stdout)
                     .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-                    .map(|s| s.to_owned())
+                    .map(|s| s.trim().to_owned())
             })
     }
 }

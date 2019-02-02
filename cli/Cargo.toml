@@ -4,9 +4,14 @@ version = "0.1.0"
 authors = ["Ian McIntyre <ianpmcintyre@gmail.com>"]
 edition = "2018"
 description = """
-API compatible python-config, written in Rust
+API compatible python-config, written in Rust, used mostly for testing
+the python-config library. This is Python 3 only.
 """
 
 [dependencies]
 clap = "2.32"
 python-config = { path = "../" }
+
+[[bin]]
+name = "python-config"
+path = "src/main.rs"

@@ -44,13 +44,18 @@ fn other_err(what: &str) -> io::Error {
     io::Error::new(io::ErrorKind::Other, what)
 }
 
+fn build_script(lines: &[&str]) -> String {
+    let mut script = String::new();
+    script.push_str("from __future__ import print_function; ");
+    for line in lines {
+        script.push_str(line);
+        script.push_str("; ");
+    }
+    script
+}
+
 /// Exposes Python distribution information
 pub struct PythonConfig {
-    /// The Python version we're interfacing
-    ///
-    /// This is a nice to know in case we need to use different Python functions
-    /// to get the same information across versions
-    version: Version,
     /// The commander that provides responses to our commands
     cmdr: Box<dyn Commander<Err = io::Error>>,
 }
@@ -66,14 +71,13 @@ impl PythonConfig {
     /// with the provided version.
     pub fn version(version: Version) -> Self {
         match version {
-            Version::Three => Self::with_commander(version, SysCommand::new("python3")),
-            Version::Two => Self::with_commander(version, SysCommand::new("python2")),
+            Version::Three => Self::with_commander(SysCommand::new("python3")),
+            Version::Two => Self::with_commander(SysCommand::new("python2")),
         }
     }
 
-    fn with_commander<C: Commander<Err = io::Error> + 'static>(version: Version, cmdr: C) -> Self {
+    fn with_commander<C: Commander<Err = io::Error> + 'static>(cmdr: C) -> Self {
         PythonConfig {
-            version,
             cmdr: Box::new(cmdr),
         }
     }
@@ -89,6 +93,40 @@ impl PythonConfig {
             semver::Version::parse(ver).map_err(|_| other_err("unable to parse semver"))
         })
     }
+
+    fn script(&self, lines: &[&str]) -> io::Result<String> {
+        self.cmdr.commands(&["-c", &build_script(lines)])
+    }
+    /// Returns the path prefix of the Python interpreter
+    pub fn prefix(&self) -> io::Result<String> {
+        self.script(&[
+            "import sysconfig",
+            "print(sysconfig.get_config_var('prefix'))",
+        ])
+    }
+
+    /// Returns the executable path prefix for the Python interpreter
+    pub fn exec_prefix(&self) -> io::Result<String> {
+        self.script(&[
+            "import sysconfig",
+            "print(sysconfig.get_config_var('exec_prefix'))",
+        ])
+    }
+
+    pub fn abi_flags(&self) -> io::Result<String> {
+        self.script(&[
+            "import sys",
+            "print(sys.abiflags)"
+        ])
+    }
+
+    pub fn includes(&self) -> io::Result<String> {
+        self.script(&[
+            "import sysconfig",
+            "flags = ['-I' + sysconfig.get_path('include'), '-I' + sysconfig.get_path('platinclude')]",
+            "print(' '.join(flags))",
+        ])
+    }
 }
 
 #[cfg(test)]
@@ -96,7 +134,6 @@ mod tests {
 
     use crate::cmdr::StaticCommand;
     use crate::PythonConfig;
-    use crate::Version;
 
     macro_rules! hashmap {
         ($($key:expr => $value:expr,)+) => { hashmap!($($key => $value),+) };
@@ -115,7 +152,6 @@ mod tests {
     #[test]
     fn version() {
         let py = PythonConfig::with_commander(
-            Version::Three,
             StaticCommand::new(hashmap!["--version" => "Python 3.7.2"]),
         );
         assert!(py.semantic_version().is_ok());
