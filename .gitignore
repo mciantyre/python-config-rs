@@ -4,3 +4,4 @@ target/
 .crates.toml
 
 .DS_Store
+Cargo.lock
