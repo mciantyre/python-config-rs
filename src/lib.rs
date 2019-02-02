@@ -114,7 +114,7 @@ fn build_script(lines: &[&str]) -> String {
     script.push_str("import sysconfig; ");
     script.push_str("pyver = sysconfig.get_config_var('VERSION'); ");
     script.push_str("getvar = sysconfig.get_config_var; ");
-    script.extend(lines.join("; ").chars());
+    script.push_str(&lines.join("; "));
     script
 }
 
@@ -124,6 +124,12 @@ pub struct PythonConfig {
     cmdr: SysCommand,
     /// The version of the Python interpreter we're using
     ver: Version,
+}
+
+impl Default for PythonConfig {
+    fn default() -> PythonConfig {
+        PythonConfig::new()
+    }
 }
 
 impl PythonConfig {
@@ -181,7 +187,7 @@ impl PythonConfig {
             interpreter
                 .as_ref()
                 .to_str()
-                .ok_or(other_err("unable to coerce interpreter path to string"))?,
+                .ok_or_else(|| other_err("unable to coerce interpreter path to string"))?,
         );
         // Assume Python 3 unless the semver tells us otherwise
         let mut cfg = PythonConfig {
@@ -211,9 +217,9 @@ impl PythonConfig {
             .and_then(|resp| {
                 let mut witer = resp.split_whitespace();
                 witer.next(); // 'Python'
-                let ver = witer.next().ok_or(other_err(
-                    "expected --version to return a string resembling 'Python X.Y.Z'",
-                ))?;
+                let ver = witer.next().ok_or_else(|| {
+                    other_err("expected --version to return a string resembling 'Python X.Y.Z'")
+                })?;
                 semver::Version::parse(ver).map_err(|_| other_err("unable to parse semver"))
             })
             .map_err(From::from)

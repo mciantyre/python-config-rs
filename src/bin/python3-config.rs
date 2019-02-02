@@ -51,7 +51,7 @@ fn main() -> io::Result<()> {
         .filter(|arg| flags.contains(arg))
         .collect();
 
-    if !all_valid || args.len() == 0 {
+    if !all_valid || args.is_empty() {
         exit_with_usage(
             &env::args()
                 .nth(0)
