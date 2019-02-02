@@ -7,7 +7,7 @@ use python_config::{PyResult, PythonConfig};
 
 use std::collections::{HashMap, HashSet};
 use std::env;
-use std::io;
+use std::io::{self, Write};
 use std::process;
 
 type Handler = fn(&PythonConfig) -> PyResult<String>;
@@ -74,11 +74,13 @@ fn main() -> io::Result<()> {
         .map(|&(flag, handler)| (flag.to_owned(), handler))
         .collect();
 
+    let stdout = io::stdout();
+    let mut stdout = stdout.lock();
     for arg in args {
         let handler = lookup
             .get(&arg)
             .expect("handler was not present in the filtered user arguments");
-        println!("{}", (handler)(&py)?);
+        writeln!(stdout, "{}", (handler)(&py)?)?;
     }
 
     Ok(())
