@@ -1,4 +1,4 @@
-# `python-config-rs` in Rust
+# `python-config-rs`
 
 The `python-config-rs` crate gives you the same insight as
 the `python-config` script bundled with your Python distribution.
