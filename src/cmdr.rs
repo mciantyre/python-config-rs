@@ -4,8 +4,8 @@ use std::io;
 use std::process;
 use std::str;
 
-/// A system command that calls a different system
-/// program to spawn a different system process
+/// A command that calls a system
+/// program to spawn a process
 pub struct SysCommand {
     program: String,
 }

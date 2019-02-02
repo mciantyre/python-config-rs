@@ -1,7 +1,7 @@
-//! # python-config
+//! # python-config-rs
 //!
-//! Just like the `python[3]-config` script that's installed
-//! with your Python distribution, `python-config` helps you
+//! Just like the `python3-config` script that's installed
+//! with your Python distribution, `python-config-rs` helps you
 //! find information about your Python distribution.
 //!
 //! ```no_run
@@ -23,11 +23,12 @@
 //! - any of the things available via `python-config`
 //!
 //! Essentially, this is a reimplementation of the
-//! `python-config` script with a Rust interface. We work
+//! `python3-config` script with a Rust interface. We work
 //! directly with your Python interpreter, just in case
-//! a `python-config` script is not on your system. In fact
-//! we provide a binary, `python-config` in case (for whatever
-//! reason) you'd like to use this version of `python-config`
+//! a `python-config` script is not on your system.
+//!
+//! We provide a new binary, `python3-config`, in case (for whatever
+//! reason) you'd like to use this version of `python3-config`
 //! instead of the distribution's script. We have tests that
 //! show our script takes the exact same inputs and returns
 //! the exact same outputs. Note that the tests only work if
@@ -36,12 +37,13 @@
 //!
 //! ## 3 > 2
 //!
-//! We make the opionin for you: by default, we favor Python 3
+//! We make the choice for you: by default, we favor Python 3
 //! over Python 2. If you need Python 2 support, use the more
 //! explicit interface to create the corresponding `PythonConfig`
-//! handle.
+//! handle. Note that, while the Python 2 interface should work,
+//! it's gone through significantly less testing.
 //!
-//! The `python-config` binary in this crate is Python 3 only.
+//! The `python3-config` binary in this crate is Python 3 only.
 
 mod cmdr;
 use cmdr::SysCommand;
@@ -60,12 +62,15 @@ pub enum Version {
     Two,
 }
 
-/// A `python-config` error
+/// Describes a few possible errors from the `PythonConfig` interface
 #[derive(Debug)]
 pub enum Error {
     /// An I/O error occured while interfacing the interpreter
     IO(io::Error),
     /// This function is for Python 3 only
+    ///
+    /// This will be the return error for methods returning
+    /// a [`Py3Only<T>`](type.Py3Only.html) type.
     Python3Only,
     /// Other, one-off errors, with reasoning provided as a string
     Other(&'static str),
@@ -91,14 +96,14 @@ impl From<Error> for io::Error {
 }
 
 /// The result type denoting a return `T` or
-/// an `Error`.
+/// an [`Error`](enum.Error.html).
 pub type PyResult<T> = Result<T, Error>;
 
 /// The result type denotes that this function
 /// is only available when interfacing a Python 3
 /// interpreter.
 ///
-/// It's the same as the normal `Results`
+/// It's the same as the normal [`PyResult`](type.PyResult.html)
 /// used throughout this module, but it's just a little
 /// type hint.
 pub type Py3Only<T> = Result<T, Error>;
@@ -118,7 +123,7 @@ fn build_script(lines: &[&str]) -> String {
     script
 }
 
-/// Exposes Python distribution information
+/// Exposes Python configuration information
 pub struct PythonConfig {
     /// The commander that provides responses to our commands
     cmdr: SysCommand,
@@ -134,20 +139,20 @@ impl Default for PythonConfig {
 
 impl PythonConfig {
     /// Create a new `PythonConfig` that uses the system installed Python 3
-    /// distribution.
+    /// interpreter to query configuration information.
     pub fn new() -> Self {
         PythonConfig::version(Version::Three)
     }
 
     /// Create a new `PythonConfig` that uses the system installed Python
-    /// of `version`.
+    /// of version `version`.
     ///
     /// # Example
     ///
     /// ```
     /// use python_config::{PythonConfig, Version};
     ///
-    /// // Interface the system-wide Python2 interpreter
+    /// // Use the system-wide Python2 interpreter
     /// let cfg = PythonConfig::version(Version::Two);
     /// ```
     pub fn version(version: Version) -> Self {
@@ -172,7 +177,7 @@ impl PythonConfig {
     /// Create a `PythonConfig` that uses the interpreter at the path `interpreter`.
     ///
     /// This fails if the path cannot be represented as a string, or if a query
-    /// for the Pythonn version fails.
+    /// for the Python version fails.
     ///
     /// # Example
     ///
@@ -206,7 +211,7 @@ impl PythonConfig {
     ///
     /// This is the raw return of `python --version`. Consider using
     /// [`semantic_version`](struct.PythonConfig.html#method.semantic_version)
-    /// for something more programatic.
+    /// for something more useful.
     pub fn version_raw(&self) -> PyResult<String> {
         self.cmdr.command("--version").map_err(From::from)
     }
@@ -236,7 +241,7 @@ impl PythonConfig {
         self.script(&["print(sysconfig.get_config_var('prefix'))"])
     }
 
-    /// Like [`prefix`](struct.PythonConfig.html#method.prefix), but returns
+    /// Like [`prefix`](#method.prefix), but returns
     /// the installation prefix as a `PathBuf`.
     pub fn prefix_path(&self) -> PyResult<PathBuf> {
         self.prefix().map(PathBuf::from)
@@ -247,7 +252,7 @@ impl PythonConfig {
         self.script(&["print(sysconfig.get_config_var('exec_prefix'))"])
     }
 
-    /// Like [`exec_prefix`](struct.PythonConfig.html#method.exec_prefix), but
+    /// Like [`exec_prefix`](#method.exec_prefix), but
     /// returns the executable prefix as a `PathBuf`.
     pub fn exec_prefix_path(&self) -> PyResult<PathBuf> {
         self.exec_prefix().map(PathBuf::from)
@@ -286,7 +291,7 @@ impl PythonConfig {
         ])
     }
 
-    /// Returns a collection linker flags required for linking this Python
+    /// Returns linker flags required for linking this Python
     /// distribution. All libraries / frameworks have the appropriate `-l`
     /// or `-framework` prefixes.
     pub fn libs(&self) -> PyResult<String> {
@@ -299,7 +304,7 @@ impl PythonConfig {
         ])
     }
 
-    /// Returns a collection of linker flags required for creating
+    /// Returns linker flags required for creating
     /// a shared library for this Python distribution. All libraries / frameworks
     /// have the appropriate `-l` or `-framework` prefixes.
     pub fn ldflags(&self) -> PyResult<String> {
@@ -334,7 +339,7 @@ impl PythonConfig {
         Ok(resp)
     }
 
-    /// The location of the distribution's actual `python-config` script
+    /// The location of the distribution's actual `python3-config` script
     ///
     /// This is only available when your interpreter is a Python 3 interpreter! This is for
     /// feature parity with the `python3-config` script.

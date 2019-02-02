@@ -1,5 +1,5 @@
 //! Reimplementation of `python3-config` using
-//! the python-config crate.
+//! the python-config-rs crate.
 //!
 //! This is Python 3 only.
 
