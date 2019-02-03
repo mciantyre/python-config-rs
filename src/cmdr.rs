@@ -18,25 +18,21 @@ impl SysCommand {
         }
     }
 
-    pub fn command(&self, cmd: &str) -> io::Result<String> {
-        process::Command::new(&self.program)
-            .arg(cmd)
-            .output()
-            .and_then(|out| {
-                str::from_utf8(&out.stdout)
-                    .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-                    .map(|s| s.trim().to_owned())
-            })
-    }
-
     pub fn commands(&self, cmd: &[&str]) -> io::Result<String> {
         process::Command::new(&self.program)
             .args(cmd)
             .output()
             .and_then(|out| {
-                str::from_utf8(&out.stdout)
-                    .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-                    .map(|s| s.trim().to_owned())
+                if !out.status.success() {
+                    Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        str::from_utf8(&out.stderr).unwrap(),
+                    ))
+                } else {
+                    str::from_utf8(&out.stdout)
+                        .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
+                        .map(|s| s.trim().to_owned())
+                }
             })
     }
 }

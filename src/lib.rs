@@ -115,12 +115,23 @@ fn other_err(what: &'static str) -> Error {
 
 fn build_script(lines: &[&str]) -> String {
     let mut script = String::new();
-    script.push_str("from __future__ import print_function; ");
-    script.push_str("import sysconfig; ");
-    script.push_str("pyver = sysconfig.get_config_var('VERSION'); ");
-    script.push_str("getvar = sysconfig.get_config_var; ");
-    script.push_str(&lines.join("; "));
+    script.push_str("from __future__ import print_function\n");
+    script.push_str("import sysconfig\n");
+    script.push_str("pyver = sysconfig.get_config_var('VERSION')\n");
+    script.push_str("getvar = sysconfig.get_config_var\n");
+    script.push_str(&lines.join("\n"));
     script
+}
+
+/// Adds a prefixing tab to the input string
+///
+/// This is nifty, because 'tab!' takes up four
+/// characters, the same amount as a tab. Visually,
+/// it looks better than just '\t' in your string.
+macro_rules! tab {
+    ($($e:expr),*) => {
+        concat!("\t", $($e)*)
+    };
 }
 
 /// Exposes Python configuration information
@@ -213,7 +224,7 @@ impl PythonConfig {
     /// [`semantic_version`](struct.PythonConfig.html#method.semantic_version)
     /// for something more useful.
     pub fn version_raw(&self) -> PyResult<String> {
-        self.cmdr.command("--version").map_err(From::from)
+        self.cmdr.commands(&["--version"]).map_err(From::from)
     }
 
     /// Returns the Python version as a semver
@@ -311,10 +322,17 @@ impl PythonConfig {
         self.script(&[
             "import sys",
             "libs = ['-lpython' + pyver + sys.abiflags]",
+            if cfg!(target_os = "linux") {
+                "libs.insert(0, '-L' + getvar('exec_prefix') + '/lib')"
+            } else {
+                ""
+            },
             "libs += getvar('LIBS').split()",
             "libs += getvar('SYSLIBS').split()",
-            "not getvar('Py_ENABLE_SHARED') and libs.insert(0, '-L' + getvar('LIBPL'))",
-            "not getvar('PYTHONFRAMEWORK') and libs.extend(getvar('LINKFORSHARED').split())",
+            "if not getvar('Py_ENABLED_SHARED'):",
+            tab!("libs.insert(0, '-L' + getvar('LIBPL'))"),
+            "if not getvar('PYTHONFRAMEWORK'):",
+            tab!("libs.extend(getvar('LINKFORSHARED').split())"),
             "print(' '.join(libs))",
         ])
     }
