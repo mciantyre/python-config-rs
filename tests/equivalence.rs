@@ -45,7 +45,7 @@ fn usage_flags(stderr: &[u8]) -> String {
 }
 
 #[test]
-fn prints_same_help_no_input() {
+fn help_no_input() {
     check_python3_config!();
     let rust = Command::cargo_bin("python3-config")
         .expect("cannot find our Rust binary")
@@ -58,7 +58,7 @@ fn prints_same_help_no_input() {
 }
 
 #[test]
-fn prints_same_help_flag() {
+fn help_flag() {
     check_python3_config!();
     let rust = Command::cargo_bin("python3-config")
         .expect("cannot find our Rust binary")
@@ -91,7 +91,23 @@ fn unknown_flag() {
     assert_eq!(usage_flags(&rust.stderr), usage_flags(&py.stderr));
 }
 
+static FLAGS: &[&'static str] = &[
+    "--prefix",
+    "--exec-prefix",
+    "--includes",
+    "--libs",
+    "--cflags",
+    "--ldflags",
+    "--extension-suffix",
+    "--abiflags",
+    "--configdir",
+];
+
 fn test_outputs_given(flags: &[&str]) {
+    for flag in flags {
+        assert!(FLAGS.iter().find(|known| known == &flag).is_some());
+    }
+
     check_python3_config!();
     let rust = Command::cargo_bin("python3-config")
         .expect("cannot find our Rust binary")
@@ -105,31 +121,64 @@ fn test_outputs_given(flags: &[&str]) {
 }
 
 #[test]
-fn test_flag_ordering() {
-    test_outputs_given(&["--includes", "--prefix"]);
-    test_outputs_given(&["--prefix", "--includes"]);
-}
-
-static FLAGS: &[&'static str] = &[
-    "--prefix",
-    "--exec-prefix",
-    "--includes",
-    "--libs",
-    "--cflags",
-    "--ldflags",
-    "--extension-suffix",
-    "--abiflags",
-    "--configdir",
-];
-
-#[test]
-fn test_all_individual_flags() {
-    for flag in FLAGS {
-        test_outputs_given(&[flag]);
-    }
+fn flag_ordering() {
+    let x = "--includes";
+    let y = "--prefix";
+    let z = "--abiflags";
+    test_outputs_given(&[x, z, y]);
+    test_outputs_given(&[x, y, z]);
+    test_outputs_given(&[y, z, x]);
+    test_outputs_given(&[y, x, z]);
+    test_outputs_given(&[z, y, x]);
+    test_outputs_given(&[z, x, y]);
 }
 
 #[test]
-fn test_all_flags() {
+fn prefix() {
+    test_outputs_given(&["--prefix"]);
+}
+
+#[test]
+fn exec_prefix() {
+    test_outputs_given(&["--exec-prefix"]);
+}
+
+#[test]
+fn includes() {
+    test_outputs_given(&["--includes"]);
+}
+
+#[test]
+fn libs() {
+    test_outputs_given(&["--libs"]);
+}
+
+#[test]
+fn cflags() {
+    test_outputs_given(&["--cflags"]);
+}
+
+#[test]
+fn ldflags() {
+    test_outputs_given(&["--ldflags"]);
+}
+
+#[test]
+fn extension_suffix() {
+    test_outputs_given(&["--extension-suffix"]);
+}
+
+#[test]
+fn abiflags() {
+    test_outputs_given(&["--abiflags"]);
+}
+
+#[test]
+fn configdir() {
+    test_outputs_given(&["--configdir"]);
+}
+
+#[test]
+fn all_flags() {
     test_outputs_given(FLAGS);
 }

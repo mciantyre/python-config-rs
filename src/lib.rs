@@ -313,8 +313,8 @@ impl PythonConfig {
             "libs = ['-lpython' + pyver + sys.abiflags]",
             "libs += getvar('LIBS').split()",
             "libs += getvar('SYSLIBS').split()",
-            "libs.insert(0, '-L' + getvar('LIBPL')) if not getvar('Py_ENABLE_SHARED') else None",
-            "libs.extend(getvar('LINKFORSHARED').split()) if not getvar('PYTHONFRAMEWORK') else None",
+            "not getvar('Py_ENABLE_SHARED') and libs.insert(0, '-L' + getvar('LIBPL'))",
+            "not getvar('PYTHONFRAMEWORK') and libs.extend(getvar('LINKFORSHARED').split())",
             "print(' '.join(libs))",
         ])
     }
