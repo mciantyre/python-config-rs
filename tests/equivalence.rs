@@ -25,11 +25,19 @@ macro_rules! check_python3_config {
     }};
 }
 
-macro_rules! assert_bytes_eq {
+/// Show that the left and right have the same characters, regardless
+/// of the number of distribution of spaces.
+///
+/// On some platforms, the system python3-config throws in arbitrary
+/// spaces between flags. This removes the spaces to assert that the
+/// characters / content are the same.
+macro_rules! assert_resp_eq {
     ($left:expr, $right:expr) => {
+        let left: Vec<_> = $left.into_iter().filter(|b| *b != b' ').collect();
+        let right: Vec<_> = $right.into_iter().filter(|b| *b != b' ').collect();
         assert_eq!(
-            str::from_utf8(&$left).unwrap(),
-            str::from_utf8(&$right).unwrap()
+            str::from_utf8(&left).unwrap(),
+            str::from_utf8(&right).unwrap()
         )
     };
 }
@@ -116,8 +124,8 @@ fn test_outputs_given(flags: &[&str]) {
         .unwrap();
     let py = Command::new("python3-config").args(flags).output().unwrap();
     assert_eq!(rust.status, py.status);
-    assert_bytes_eq!(rust.stderr, py.stderr);
-    assert_bytes_eq!(rust.stdout, py.stdout);
+    assert_resp_eq!(rust.stderr, py.stderr);
+    assert_resp_eq!(rust.stdout, py.stdout);
 }
 
 #[test]
