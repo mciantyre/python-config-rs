@@ -33,7 +33,7 @@ macro_rules! check_python3_config {
 /// characters / content are the same.
 fn assert_resp_eq(left: &[u8], right: &[u8]) {
     use std::cmp;
-    const VIEW_WINDOW: usize = 20;
+    const VIEW_WINDOW: usize = 80;
 
     let left = str::from_utf8(&left).unwrap();
     let right = str::from_utf8(&right).unwrap();
@@ -44,9 +44,9 @@ fn assert_resp_eq(left: &[u8], right: &[u8]) {
         .zip(right.char_indices().filter(|(_, c)| !c.is_whitespace()))
     {
         if lc != rc && !lc.is_whitespace() && !rc.is_whitespace() {
-            let ll = cmp::max(li - VIEW_WINDOW, 0);
+            let ll = li.saturating_sub(VIEW_WINDOW);
             let lh = cmp::min(li + VIEW_WINDOW, left.len());
-            let rl = cmp::max(ri - VIEW_WINDOW, 0);
+            let rl = ri.saturating_sub(VIEW_WINDOW);
             let rh = cmp::min(ri + VIEW_WINDOW, right.len());
 
             panic!("Detected differences between left and right responses\nLEFT  : {}{}{}\nRIGHT : {}{}{}\n",

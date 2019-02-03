@@ -297,7 +297,11 @@ impl PythonConfig {
     pub fn cflags(&self) -> PyResult<String> {
         self.script(&[
             "flags = ['-I' + sysconfig.get_path('include'), '-I' + sysconfig.get_path('platinclude')]",
-            "flags.extend(sysconfig.get_config_var('CFLAGS').split())",
+            if cfg!(target_os = "linux") {
+                "flags.extend(sysconfig.get_config_var('BASECFLAGS').split())\nflags.extend(sysconfig.get_config_var('CONFIGURE_CFLAGS').split())"
+            } else {
+                "flags.extend(sysconfig.get_config_var('CFLAGS').split())"
+            },
             "print(' '.join(flags))",
         ])
     }
