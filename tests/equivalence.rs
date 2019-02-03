@@ -31,15 +31,34 @@ macro_rules! check_python3_config {
 /// On some platforms, the system python3-config throws in arbitrary
 /// spaces between flags. This removes the spaces to assert that the
 /// characters / content are the same.
-macro_rules! assert_resp_eq {
-    ($left:expr, $right:expr) => {
-        let left: Vec<_> = $left.into_iter().filter(|b| *b != b' ').collect();
-        let right: Vec<_> = $right.into_iter().filter(|b| *b != b' ').collect();
-        assert_eq!(
-            str::from_utf8(&left).unwrap(),
-            str::from_utf8(&right).unwrap()
-        )
-    };
+fn assert_resp_eq(left: &[u8], right: &[u8]) {
+    use std::cmp;
+    const VIEW_WINDOW: usize = 20;
+
+    let left = str::from_utf8(&left).unwrap();
+    let right = str::from_utf8(&right).unwrap();
+
+    for ((li, lc), (ri, rc)) in left
+        .char_indices()
+        .filter(|(_, c)| !c.is_whitespace())
+        .zip(right.char_indices().filter(|(_, c)| !c.is_whitespace()))
+    {
+        if lc != rc && !lc.is_whitespace() && !rc.is_whitespace() {
+            let ll = cmp::max(li - VIEW_WINDOW, 0);
+            let lh = cmp::min(li + VIEW_WINDOW, left.len());
+            let rl = cmp::max(ri - VIEW_WINDOW, 0);
+            let rh = cmp::min(ri + VIEW_WINDOW, right.len());
+
+            panic!("Detected differences between left and right responses\nLEFT  : {}{}{}\nRIGHT : {}{}{}\n",
+                    if ll == 0 { "" } else { "..." },
+                    &left[ll..lh],
+                    if lh == left.len() { "" } else { "..." },
+                    if rl == 0 { "" } else { "..." },
+                    &right[rl..rh],
+                    if rh == right.len() { "" } else { "..." }
+                )
+        }
+    }
 }
 
 // We remove the path to the binaries in the stderr output, then
@@ -124,8 +143,8 @@ fn test_outputs_given(flags: &[&str]) {
         .unwrap();
     let py = Command::new("python3-config").args(flags).output().unwrap();
     assert_eq!(rust.status, py.status);
-    assert_resp_eq!(rust.stderr, py.stderr);
-    assert_resp_eq!(rust.stdout, py.stdout);
+    assert_resp_eq(&rust.stderr, &py.stderr);
+    assert_resp_eq(&rust.stdout, &py.stdout);
 }
 
 #[test]
@@ -184,9 +203,4 @@ fn abiflags() {
 #[test]
 fn configdir() {
     test_outputs_given(&["--configdir"]);
-}
-
-#[test]
-fn all_flags() {
-    test_outputs_given(FLAGS);
 }
