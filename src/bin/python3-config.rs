@@ -31,7 +31,27 @@ fn exit_with_usage(program: &str, code: i32) {
         .map(|(flag, _)| *flag)
         .collect();
     let flags = flags.join("|");
-    eprintln!("Usage: {} [{}]", program, flags);
+
+    // Python3.7 python3-config on macos always prints
+    // to stderr, regardless of whether user asked for
+    // help, or we're printing the usage after an error.
+    #[cfg(target_os = "macos")]
+    {
+        eprintln!("Usage: {} [{}]", program, flags);
+    }
+
+    // Python3.5 python3-config on Linux does the opposite:
+    // always prints to stdout. It also doesn't have the
+    // square brackets surrounding the flags.
+    //
+    // As of this writing, we're unknown about the status
+    // on Windows. We assume it's similar to Linux until
+    // proven otherwise.
+    #[cfg(not(target_os = "macos"))]
+    {
+        println!("Usage: {} {}", program, flags);
+    }
+
     process::exit(code);
 }
 

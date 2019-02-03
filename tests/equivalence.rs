@@ -53,7 +53,7 @@ fn help_no_input() {
         .unwrap();
     let py = Command::new("python3-config").output().unwrap();
     assert_eq!(rust.status, py.status);
-    assert_bytes_eq!(rust.stdout, py.stdout);
+    assert_eq!(usage_flags(&rust.stdout), usage_flags(&py.stdout));
     assert_eq!(usage_flags(&rust.stderr), usage_flags(&py.stderr));
 }
 
@@ -70,7 +70,7 @@ fn help_flag() {
         .output()
         .unwrap();
     assert_eq!(rust.status, py.status);
-    assert_bytes_eq!(rust.stdout, py.stdout);
+    assert_eq!(usage_flags(&rust.stdout), usage_flags(&py.stdout));
     assert_eq!(usage_flags(&rust.stderr), usage_flags(&py.stderr));
 }
 
@@ -87,7 +87,7 @@ fn unknown_flag() {
         .output()
         .unwrap();
     assert_eq!(rust.status, py.status);
-    assert_bytes_eq!(rust.stdout, py.stdout);
+    assert_eq!(usage_flags(&rust.stdout), usage_flags(&py.stdout));
     assert_eq!(usage_flags(&rust.stderr), usage_flags(&py.stderr));
 }
 
