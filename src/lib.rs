@@ -46,6 +46,9 @@
 //! The `python3-config` binary in this crate is Python 3 only.
 
 mod cmdr;
+#[macro_use]
+mod script;
+
 use cmdr::SysCommand;
 
 use semver;
@@ -113,6 +116,9 @@ fn other_err(what: &'static str) -> Error {
     Error::Other(what)
 }
 
+/// Defines the script with a common prelude of imports
+/// and helper functions. Returns a single string that
+/// represents the script.
 fn build_script(lines: &[&str]) -> String {
     let mut script = String::new();
     script.push_str("from __future__ import print_function\n");
@@ -121,17 +127,6 @@ fn build_script(lines: &[&str]) -> String {
     script.push_str("getvar = sysconfig.get_config_var\n");
     script.push_str(&lines.join("\n"));
     script
-}
-
-/// Adds a prefixing tab to the input string
-///
-/// This is nifty, because 'tab!' takes up four
-/// characters, the same amount as a tab. Visually,
-/// it looks better than just '\t' in your string.
-macro_rules! tab {
-    ($($e:expr),*) => {
-        concat!("\t", $($e)*)
-    };
 }
 
 /// Exposes Python configuration information
@@ -249,7 +244,7 @@ impl PythonConfig {
 
     /// Returns the installation prefix of the Python interpreter as a string
     pub fn prefix(&self) -> PyResult<String> {
-        self.script(&["print(sysconfig.get_config_var('prefix'))"])
+        self.script(&["print(getvar('prefix'))"])
     }
 
     /// Like [`prefix`](#method.prefix), but returns
@@ -260,7 +255,7 @@ impl PythonConfig {
 
     /// Returns the executable path prefix for the Python interpreter as a string
     pub fn exec_prefix(&self) -> PyResult<String> {
-        self.script(&["print(sysconfig.get_config_var('exec_prefix'))"])
+        self.script(&["print(getvar('exec_prefix'))"])
     }
 
     /// Like [`exec_prefix`](#method.exec_prefix), but
@@ -297,11 +292,9 @@ impl PythonConfig {
     pub fn cflags(&self) -> PyResult<String> {
         self.script(&[
             "flags = ['-I' + sysconfig.get_path('include'), '-I' + sysconfig.get_path('platinclude')]",
-            if cfg!(target_os = "linux") {
-                "flags.extend(sysconfig.get_config_var('BASECFLAGS').split())\nflags.extend(sysconfig.get_config_var('CONFIGURE_CFLAGS').split())"
-            } else {
-                "flags.extend(sysconfig.get_config_var('CFLAGS').split())"
-            },
+            linux_line!("flags.extend(getvar('BASECFLAGS').split())"),
+            linux_line!("flags.extend(getvar('CONFIGURE_CFLAGS').split())"),
+            macos_line!("flags.extend(getvar('CFLAGS').split())"),
             "print(' '.join(flags))",
         ])
     }
@@ -326,11 +319,7 @@ impl PythonConfig {
         self.script(&[
             "import sys",
             "libs = ['-lpython' + pyver + sys.abiflags]",
-            if cfg!(target_os = "linux") {
-                "libs.insert(0, '-L' + getvar('exec_prefix') + '/lib')"
-            } else {
-                ""
-            },
+            linux_line!["libs.insert(0, '-L' + getvar('exec_prefix') + '/lib')"],
             "libs += getvar('LIBS').split()",
             "libs += getvar('SYSLIBS').split()",
             "if not getvar('Py_ENABLED_SHARED'):",
@@ -347,7 +336,7 @@ impl PythonConfig {
     /// feature parity with the `python3-config` script.
     pub fn extension_suffix(&self) -> Py3Only<String> {
         self.is_py3()?;
-        let resp = self.script(&["print(sysconfig.get_config_var('EXT_SUFFIX'))"])?;
+        let resp = self.script(&["print(getvar('EXT_SUFFIX'))"])?;
         Ok(resp)
     }
 
@@ -367,7 +356,7 @@ impl PythonConfig {
     /// feature parity with the `python3-config` script.
     pub fn config_dir(&self) -> Py3Only<String> {
         self.is_py3()?;
-        let resp = self.script(&["print(sysconfig.get_config_var('LIBPL'))"])?;
+        let resp = self.script(&["print(getvar('LIBPL'))"])?;
         Ok(resp)
     }
 
