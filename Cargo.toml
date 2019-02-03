@@ -1,11 +1,22 @@
 [package]
 name = "python-config-rs"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Ian McIntyre <ianpmcintyre@gmail.com>"]
 repository = "https://github.com/mciantyre/python-config-rs"
 edition = "2018"
 description = """
-Python distribution information, similar to python-config
+Python distribution information via python3-config.
+
+This crate provides a Rust interface to your system's Python distribution information.
+Our goal is for this to be useful in build scripts, or in any application where
+getting the Python include directories, linker flags, or compile flags is necessary.
+
+This crate also provides a reimplementation of python3-config, the
+script, that can query configuration information about your
+distribution. The binary only needs a Python interpreter. We show that
+our binary is API compatible with existing `python3-config` scripts.
+
+See the repsitory for more project information.
 """
 license = "MIT OR Apache-2.0"
 categories = [
@@ -13,7 +24,6 @@ categories = [
     "command-line-utilities",
 ]
 keywords = ["python"]
-readme = "README.md"
 
 [dependencies]
 semver = "0.9"
