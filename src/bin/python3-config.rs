@@ -12,7 +12,7 @@ use std::process;
 
 type Handler = fn(&PythonConfig) -> PyResult<String>;
 
-static VALID_OPTS_TO_HANDLER: &[(&'static str, Handler)] = &[
+static VALID_OPTS_TO_HANDLER: &[(&str, Handler)] = &[
     ("--prefix", PythonConfig::prefix),
     ("--exec-prefix", PythonConfig::exec_prefix),
     ("--includes", PythonConfig::includes),
