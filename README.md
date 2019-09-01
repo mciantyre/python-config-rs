@@ -1,4 +1,5 @@
-# `python-config-rs` [![](https://img.shields.io/crates/v/python-config-rs.svg?style=flat-square)](https://crates.io/crates/python-config-rs)
+# `python-config-rs`
+[![](https://img.shields.io/crates/v/python-config-rs.svg?style=flat-square)](https://crates.io/crates/python-config-rs) [![Build Status](https://travis-ci.org/mciantyre/python-config-rs.svg?branch=master)](https://travis-ci.org/mciantyre/python-config-rs)
 
 [API Documentation](https://docs.rs/python-config-rs/)
 

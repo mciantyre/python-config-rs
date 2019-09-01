@@ -158,8 +158,8 @@ impl PythonConfig {
     /// ```
     /// use python_config::{PythonConfig, Version};
     ///
-    /// // Use the system-wide Python2 interpreter
-    /// let cfg = PythonConfig::version(Version::Two);
+    /// // Use the system-wide Python3 interpreter
+    /// let cfg = PythonConfig::version(Version::Three);
     /// ```
     pub fn version(version: Version) -> Self {
         match version {
@@ -218,11 +218,31 @@ impl PythonConfig {
     /// This is the raw return of `python --version`. Consider using
     /// [`semantic_version`](struct.PythonConfig.html#method.semantic_version)
     /// for something more useful.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use python_config::PythonConfig;
+    ///
+    /// let cfg = PythonConfig::new();
+    /// // Prints something like 'Python 3.7.4'
+    /// println!("{}", cfg.version_raw().unwrap());
+    /// ```
     pub fn version_raw(&self) -> PyResult<String> {
         self.cmdr.commands(&["--version"]).map_err(From::from)
     }
 
     /// Returns the Python version as a semver
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use python_config::PythonConfig;
+    ///
+    /// let cfg = PythonConfig::new();
+    /// // Prints semver "3.7.4"
+    /// println!("{}", cfg.semantic_version().unwrap());
+    /// ```
     pub fn semantic_version(&self) -> PyResult<semver::Version> {
         self.version_raw()
             .and_then(|resp| {
@@ -242,18 +262,45 @@ impl PythonConfig {
             .map_err(From::from)
     }
 
-    /// Returns the installation prefix of the Python interpreter as a string
+    /// Returns the installation prefix of the Python interpreter as a string.
+    ///
+    /// The prefix is dependent on the host operating system.
+    /// On macOS, depending on how Python is installed, it will return
+    /// a string resembling
+    /// `/usr/local/opt/python/Frameworks/Python.framework/Versions/3.7`.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use python_config::PythonConfig;
+    ///
+    /// let cfg = PythonConfig::new();
+    /// println!("{}", cfg.prefix().unwrap());
+    /// ```
     pub fn prefix(&self) -> PyResult<String> {
         self.script(&["print(getvar('prefix'))"])
     }
 
     /// Like [`prefix`](#method.prefix), but returns
     /// the installation prefix as a `PathBuf`.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use python_config::PythonConfig;
+    ///
+    /// let cfg = PythonConfig::new();
+    /// println!("{}", cfg.prefix_path().unwrap().display());
+    /// ```
     pub fn prefix_path(&self) -> PyResult<PathBuf> {
         self.prefix().map(PathBuf::from)
     }
 
     /// Returns the executable path prefix for the Python interpreter as a string
+    ///
+    /// The path is dependent on the host OS and the installation path
+    /// of the Python interpreter. On macOS, the string may resemble something
+    /// like `/usr/local/opt/python/Frameworks/Python.framework/Versions/3.7`.
     pub fn exec_prefix(&self) -> PyResult<String> {
         self.script(&["print(getvar('exec_prefix'))"])
     }
@@ -267,6 +314,15 @@ impl PythonConfig {
     /// Returns a list of paths that represent the include paths
     /// for the distribution's headers. This is a space-delimited
     /// string of paths prefixed with `-I`.
+    ///
+    /// The single string may resemble something lke the following
+    /// (on macOS)
+    ///
+    /// ```text
+    /// -I/usr/local/Cellar/python/3.7.4/Frameworks/Python.framework/Versions/3.7/include/python3.7m
+    /// ```
+    ///
+    /// Note that the same path may appear more than once.
     pub fn includes(&self) -> PyResult<String> {
         self.script(&[
             "flags = ['-I' + sysconfig.get_path('include'), '-I' + sysconfig.get_path('platinclude')]",
@@ -276,7 +332,8 @@ impl PythonConfig {
 
     /// Returns a list of paths that represent the include paths
     /// for the distribution's headers. Unlike [`includes`](#method.includes),
-    /// This is simply a collection of paths.
+    /// this is simply a collection of paths. Note that the same
+    /// path may appear more than once.
     pub fn include_paths(&self) -> PyResult<Vec<PathBuf>> {
         self.script(&[
             "print(sysconfig.get_path('include'))",
@@ -302,6 +359,12 @@ impl PythonConfig {
     /// Returns linker flags required for linking this Python
     /// distribution. All libraries / frameworks have the appropriate `-l`
     /// or `-framework` prefixes.
+    ///
+    /// On macOS, the single string may resemble something like
+    ///
+    /// ```text
+    /// -lpython3.7m -ldl -framework CoreFoundation
+    /// ```
     pub fn libs(&self) -> PyResult<String> {
         self.script(&[
             "import sys",
@@ -314,7 +377,13 @@ impl PythonConfig {
 
     /// Returns linker flags required for creating
     /// a shared library for this Python distribution. All libraries / frameworks
-    /// have the appropriate `-l` or `-framework` prefixes.
+    /// have the appropriate `-L`, `-l`, or `-framework` prefixes.
+    ///
+    /// On macOS, the single string may resemble something like
+    ///
+    /// ```text
+    /// -L/usr/local/opt/python/Frameworks/Python.framework/Versions/3.7/lib/python3.7/config-3.7m-darwin -lpython3.7m -ldl -framework CoreFoundation
+    /// ```
     pub fn ldflags(&self) -> PyResult<String> {
         self.script(&[
             "import sys",
@@ -334,6 +403,8 @@ impl PythonConfig {
     ///
     /// This is only available when your interpreter is a Python 3 interpreter! This is for
     /// feature parity with the `python3-config` script.
+    ///
+    /// On macOS, the string may resemble something like `.cpython-37m-darwin.so`.
     pub fn extension_suffix(&self) -> Py3Only<String> {
         self.is_py3()?;
         let resp = self.script(&["print(getvar('EXT_SUFFIX'))"])?;
@@ -367,5 +438,57 @@ impl PythonConfig {
     /// feature parity with the `python3-config` script.
     pub fn config_dir_path(&self) -> Py3Only<PathBuf> {
         self.config_dir().map(PathBuf::from)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! The tests only show that, under normal circumstances, there
+    //! are no errors returned from the public API.
+
+    use super::PythonConfig;
+    use std::path::PathBuf;
+
+    macro_rules! pycfgtest {
+        ($ident:ident) => {
+            #[test]
+            fn $ident() {
+                assert!(PythonConfig::new().$ident().is_ok());
+            }
+        };
+    }
+
+    pycfgtest!(version_raw);
+    pycfgtest!(semantic_version);
+    pycfgtest!(prefix);
+    pycfgtest!(prefix_path);
+    pycfgtest!(exec_prefix);
+    pycfgtest!(exec_prefix_path);
+    pycfgtest!(includes);
+    pycfgtest!(include_paths);
+    pycfgtest!(cflags);
+    pycfgtest!(libs);
+    pycfgtest!(ldflags);
+    pycfgtest!(extension_suffix);
+    pycfgtest!(abi_flags);
+    pycfgtest!(config_dir);
+    pycfgtest!(config_dir_path);
+
+    // Shows that includes and include_paths return the same things
+    // just in different types.
+    #[test]
+    fn include_paths_same() {
+        let cfg = PythonConfig::new();
+        let include_str = cfg.includes().unwrap();
+        assert!(!include_str.is_empty());
+        let paths: Vec<PathBuf> = include_str
+            .split(" ")
+            .map(|include| {
+                // Drop the '-I' characters before each path
+                PathBuf::from(&include[2..])
+            })
+            .collect();
+        let actual = cfg.include_paths().unwrap();
+        assert_eq!(actual, paths);
     }
 }
